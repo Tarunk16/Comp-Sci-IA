@@ -46,6 +46,33 @@ def index():
         return render_template("results.html", results=results, graph=graph_url)
 
     return render_template("index.html")
+    
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+def predict_acceptance_probability(gpa, sat, extracurriculars, essay, avg_gpa, avg_sat):
+    # Define weights for each factor
+    gpa_weight = 0.4
+    sat_weight = 0.4
+    extracurricular_weight = 0.1
+    essay_weight = 0.1
+    
+    # Normalize scores
+    normalized_gpa = (gpa / 4.0) * 100  # Convert GPA to a percentage
+    normalized_sat = (sat / 1600) * 100  # Convert SAT to a percentage
+    
+    # Calculate the weighted score
+    weighted_score = (normalized_gpa * gpa_weight +
+                      normalized_sat * sat_weight +
+                      (extracurriculars * 10) * extracurricular_weight +  # Assume a scale of 0-10 for extracurriculars
+                      (essay * 10) * essay_weight)  # Assume a scale of 0-10 for essay quality
+    
+    # Compare with average college data
+    avg_score = (avg_gpa / 4.0) * 100 * gpa_weight + (avg_sat / 1600) * 100 * sat_weight
+    
+    # Calculate probability of acceptance
+    acceptance_probability = min(weighted_score / avg_score * 100, 100)  # Cap at 100%
+    
+    return round(acceptance_probability, 2)
+
