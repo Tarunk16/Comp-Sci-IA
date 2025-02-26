@@ -76,3 +76,54 @@ def predict_acceptance_probability(gpa, sat, extracurriculars, essay, avg_gpa, a
     
     return round(acceptance_probability, 2)
 
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        try:
+            gpa = float(request.form["gpa"])
+            sat = int(request.form["sat"])
+            extracurriculars = int(request.form["extracurriculars"])
+            essay = int(request.form["essay"])
+
+            # Input validation
+            if not (0 <= gpa <= 4.0):
+                raise ValueError("GPA must be between 0.0 and 4.0.")
+            if not (0 <= sat <= 1600):
+                raise ValueError("SAT score must be between 0 and 1600.")
+            if not (0 <= extracurriculars <= 10):
+                raise ValueError("Extracurricular activities must be between 0 and 10.")
+            if not (0 <= essay <= 10):
+                raise ValueError("Essay quality must be between 0 and 10.")
+
+            results = []
+            for college in colleges:
+                probability = predict_acceptance_probability(gpa, sat, extracurriculars, essay, college["avg_gpa"], college["avg_sat"])
+                results.append({"college": college["name"], "probability": probability})
+
+            # Generate Bar Chart
+            fig, ax = plt.subplots()
+            college_names = [r["college"] for r in results]
+            probabilities = [r["probability"] for r in results]
+            ax.bar(college_names, probabilities)
+            ax.set_ylabel("Acceptance Probability (%)")
+            ax.set_title("College Acceptance Chances")
+            plt.xticks(rotation=45)
+
+            # Convert Plot to Image
+            buffer = io.BytesIO()
+            plt.savefig(buffer, format="png")
+            buffer.seek(0)
+            graph_url = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+            # Calculate average probability
+            average_probability = sum(r["probability"] for r in results) / len(results)
+            tips = generate_tips(average_probability)
+
+            return render_template("results.html", results=results, graph=graph_url, average_probability=average_probability, tips=tips)
+
+        except ValueError as e:
+            return render_template("index.html", error=str(e))
+
+    return render_template("index.html")
+
+
